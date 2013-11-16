@@ -43,7 +43,7 @@
  * TODO
  *
  * Add zooming with pinching on Android
- * 
+ *
  * Bug: when an item contains a javascript onclick or a link, this does not work
  *      when the item is not selected (when the item is being selected,
  *      it is redrawn, which cancels any onclick or link action)
@@ -60,8 +60,8 @@
  */
 if (typeof links === 'undefined') {
     links = {};
-    // important: do not use var, as "var links = {};" will overwrite 
-    //            the existing links variable value with undefined in IE8, IE7.  
+    // important: do not use var, as "var links = {};" will overwrite
+    //            the existing links variable value with undefined in IE8, IE7.
 }
 
 
@@ -70,7 +70,7 @@ if (typeof links === 'undefined') {
  */
 if (typeof google === 'undefined') {
     google = undefined;
-    // important: do not use var, as "var google = undefined;" will overwrite 
+    // important: do not use var, as "var google = undefined;" will overwrite
     //            the existing google variable value with undefined in IE8, IE7.
 }
 
@@ -136,7 +136,7 @@ links.Timeline = function(container) {
 
     this.listeners = {}; // event listener callbacks
 
-    // Initialize sizes. 
+    // Initialize sizes.
     // Needed for IE (which gives an error when you try to set an undefined
     // value in a style)
     this.size = {
@@ -194,7 +194,7 @@ links.Timeline = function(container) {
         'groupChangeable': true,
 
         'showCurrentTime': true, // show a red bar displaying the current time
-        'showCustomTime': false, // show a blue, draggable bar displaying a custom time    
+        'showCustomTime': false, // show a blue, draggable bar displaying a custom time
         'showMajorLabels': true,
         'showMinorLabels': true,
         'showNavigation': false,
@@ -208,7 +208,7 @@ links.Timeline = function(container) {
         'cluster': false,
         'style': 'box',
         'customStackOrder': false, //a function(a,b) for determining stackorder amongst a group of items. Essentially a comparator, -ve value for "a before b" and vice versa
-        
+
         // i18n: Timeline only has built-in English text per default. Include timeline-locales.js to support more localized text.
         'locale': 'en',
         'MONTHS': new Array("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"),
@@ -246,7 +246,7 @@ links.Timeline = function(container) {
     this.data = [];
     this.firstDraw = true;
 
-    // date interval must be initialized 
+    // date interval must be initialized
     this.setVisibleChartRange(undefined, undefined, false);
 
     // render for the first time
@@ -275,7 +275,7 @@ links.Timeline = function(container) {
  */
 links.Timeline.prototype.draw = function(data, options) {
     this.setOptions(options);
-    
+
     if (this.options.selectable) {
         links.Timeline.addClassName(this.dom.frame, "timeline-selectable");
     }
@@ -309,7 +309,7 @@ links.Timeline.prototype.setOptions = function(options) {
                 this.options[i] = options[i];
             }
         }
-        
+
         // prepare i18n dependent on set locale
         if (typeof links.locales !== 'undefined' && this.options.locale !== 'en') {
             var localeOpts = links.locales[this.options.locale];
@@ -432,7 +432,8 @@ links.Timeline.prototype.setData = function(data) {
                 'group':     ((cols.group != undefined)     ? data.getValue(row, cols.group)     : undefined),
                 'className': ((cols.className != undefined) ? data.getValue(row, cols.className) : undefined),
                 'editable':  ((cols.editable != undefined)  ? data.getValue(row, cols.editable)  : undefined),
-                'type':      ((cols.type != undefined)      ? data.getValue(row, cols.type)      : undefined)
+                'type':      ((cols.type != undefined)      ? data.getValue(row, cols.type)      : undefined),
+                'data':      ((cols.data != undefined)      ? data.getValue(row, cols.data)      : undefined)
             }));
         }
     }
@@ -1874,7 +1875,7 @@ links.Timeline.prototype.repaintGroups = function() {
     labels.splice(needed, current - needed);
     labelLines.splice(needed, current - needed);
     itemLines.splice(needed, current - needed);
-    
+
     links.Timeline.addClassName(frame, options.groupsOnRight ? 'timeline-groups-axis-onright' : 'timeline-groups-axis-onleft');
 
     // position the groups
@@ -2179,9 +2180,9 @@ links.Timeline.prototype.repaintNavigation = function () {
             navBar.addButton.className = "timeline-navigation-new";
             navBar.addButton.title = options.CREATE_NEW_EVENT;
             var addIconSpan = document.createElement("SPAN");
-            addIconSpan.className = "ui-icon ui-icon-circle-plus";            
+            addIconSpan.className = "ui-icon ui-icon-circle-plus";
             navBar.addButton.appendChild(addIconSpan);
-            
+
             var onAdd = function(event) {
                 links.Timeline.preventDefault(event);
                 links.Timeline.stopPropagation(event);
@@ -2243,7 +2244,7 @@ links.Timeline.prototype.repaintNavigation = function () {
                 var ziIconSpan = document.createElement("SPAN");
                 ziIconSpan.className = "ui-icon ui-icon-circle-zoomin";
                 navBar.zoomInButton.appendChild(ziIconSpan);
-                
+
                 var onZoomIn = function(event) {
                     links.Timeline.preventDefault(event);
                     links.Timeline.stopPropagation(event);
@@ -2261,7 +2262,7 @@ links.Timeline.prototype.repaintNavigation = function () {
                 var zoIconSpan = document.createElement("SPAN");
                 zoIconSpan.className = "ui-icon ui-icon-circle-zoomout";
                 navBar.zoomOutButton.appendChild(zoIconSpan);
-                
+
                 var onZoomOut = function(event) {
                     links.Timeline.preventDefault(event);
                     links.Timeline.stopPropagation(event);
@@ -2281,7 +2282,7 @@ links.Timeline.prototype.repaintNavigation = function () {
                 var mlIconSpan = document.createElement("SPAN");
                 mlIconSpan.className = "ui-icon ui-icon-circle-arrow-w";
                 navBar.moveLeftButton.appendChild(mlIconSpan);
-                
+
                 var onMoveLeft = function(event) {
                     links.Timeline.preventDefault(event);
                     links.Timeline.stopPropagation(event);
@@ -2299,7 +2300,7 @@ links.Timeline.prototype.repaintNavigation = function () {
                 var mrIconSpan = document.createElement("SPAN");
                 mrIconSpan.className = "ui-icon ui-icon-circle-arrow-e";
                 navBar.moveRightButton.appendChild(mrIconSpan);
-                
+
                 var onMoveRight = function(event) {
                     links.Timeline.preventDefault(event);
                     links.Timeline.stopPropagation(event);
@@ -2525,7 +2526,7 @@ links.Timeline.prototype.onTouchMove = function(event) {
     }
 
     if (!params.zoomed) {
-        // move 
+        // move
         this.onMouseMove(event);
     }
     else {
@@ -2828,7 +2829,7 @@ links.Timeline.prototype.onMouseMove = function (event) {
         this.recalcConversion();
 
         // move the items by changing the left position of their frame.
-        // this is much faster than repositioning all elements individually via the 
+        // this is much faster than repositioning all elements individually via the
         // repaintFrame() function (which is done once at mouseup)
         // note that we round diffX to prevent wrong positioning on millisecond scale
         var previousLeft = params.previousLeft || 0;
@@ -2895,8 +2896,8 @@ links.Timeline.prototype.onMouseUp = function (event) {
                 'end': item.end
             });
 
-            // fire an add or change event. 
-            // Note that the change can be canceled from within an event listener if 
+            // fire an add or change event.
+            // Note that the change can be canceled from within an event listener if
             // this listener calls the method cancelChange().
             this.trigger(params.addItem ? 'add' : 'change');
 
@@ -3068,7 +3069,7 @@ links.Timeline.prototype.onMouseWheel = function(event) {
         event = window.event;
     }
 
-    // retrieve delta    
+    // retrieve delta
     var delta = 0;
     if (event.wheelDelta) { /* IE/Opera. */
         delta = event.wheelDelta/120;
@@ -3082,7 +3083,7 @@ links.Timeline.prototype.onMouseWheel = function(event) {
     // Basically, delta is now positive if wheel was scrolled up,
     // and negative, if wheel was scrolled down.
     if (delta) {
-        // TODO: on FireFox, the window is not redrawn within repeated scroll-events 
+        // TODO: on FireFox, the window is not redrawn within repeated scroll-events
         // -> use a delayed redraw? Make a zoom queue?
 
         var timeline = this;
@@ -3301,8 +3302,8 @@ links.Timeline.prototype.confirmDeleteItem = function(index) {
         this.selectItem(index);
     }
 
-    // fire a delete event trigger. 
-    // Note that the delete event can be canceled from within an event listener if 
+    // fire a delete event trigger.
+    // Note that the delete event can be canceled from within an event listener if
     // this listener calls the method cancelChange().
     this.trigger('delete');
 
@@ -3458,6 +3459,7 @@ links.Timeline.Item = function (data, options) {
         this.editable = data.editable;
         this.group = data.group;
         this.type = data.type;
+        this.data = data.data;
     }
     this.top = 0;
     this.left = 0;
@@ -4439,7 +4441,8 @@ links.Timeline.prototype.createItem = function(itemData) {
         className: itemData.className,
         editable: itemData.editable,
         group: this.getGroup(itemData.group),
-        type: type
+        type: type,
+        data: itemData.data
     };
     // TODO: optimize this, when creating an item, all data is copied twice...
 
@@ -4487,7 +4490,8 @@ links.Timeline.prototype.changeItem = function (index, itemData, preventRender) 
         'group':     itemData.hasOwnProperty('group') ?     itemData.group :     this.getGroupName(oldItem.group),
         'className': itemData.hasOwnProperty('className') ? itemData.className : oldItem.className,
         'editable':  itemData.hasOwnProperty('editable') ?  itemData.editable :  oldItem.editable,
-        'type':      itemData.hasOwnProperty('type') ?      itemData.type :      oldItem.type
+        'type':      itemData.hasOwnProperty('type') ?      itemData.type :      oldItem.type,
+        'data':      itemData.hasOwnProperty('data') ?      itemData.data :      oldItem.data
     });
     this.items[index] = newItem;
 
@@ -4541,8 +4545,8 @@ links.Timeline.prototype.getGroup = function (groupName) {
             'content': groupName,
             'labelTop': 0,
             'lineTop': 0
-            // note: this object will lateron get addition information, 
-            //       such as height and width of the group         
+            // note: this object will lateron get addition information,
+            //       such as height and width of the group
         };
         groups.push(groupObj);
         // sort the groups
@@ -4803,7 +4807,7 @@ links.Timeline.prototype.stackOrder = function(items) {
     // TODO: store the sorted items, to have less work later on
     var sortedItems = items.concat([]);
 
-    //if a customer stack order function exists, use it. 
+    //if a customer stack order function exists, use it.
     var f = this.options.customStackOrder && (typeof this.options.customStackOrder === 'function') ? this.options.customStackOrder : function (a, b)
     {
         if ((a instanceof links.Timeline.ItemRange) &&
@@ -4981,7 +4985,7 @@ links.Timeline.prototype.stackItemsCheckOverlap = function(items, itemIndex,
     var eventMargin = this.options.eventMargin,
         collision = this.collision;
 
-    // we loop from end to start, as we suppose that the chance of a 
+    // we loop from end to start, as we suppose that the chance of a
     // collision is larger for items at the end, so check these first.
     var item1 = items[itemIndex];
     for (var i = itemEnd; i >= itemStart; i--) {
@@ -5009,7 +5013,7 @@ links.Timeline.prototype.stackItemsCheckOverlap = function(items, itemIndex,
  * @return {boolean}            true if item1 and item2 collide, else false
  */
 links.Timeline.prototype.collision = function(item1, item2, margin) {
-    // set margin if not specified 
+    // set margin if not specified
     if (margin == undefined) {
         margin = 0;
     }
@@ -5648,7 +5652,7 @@ links.Timeline.StepDate.prototype.end = function () {
 links.Timeline.StepDate.prototype.next = function() {
     var prev = this.current.valueOf();
 
-    // Two cases, needed to prevent issues with switching daylight savings 
+    // Two cases, needed to prevent issues with switching daylight savings
     // (end of March and end of October)
     if (this.current.getMonth() < 6)   {
         switch (this.scale) {
@@ -5815,7 +5819,7 @@ links.Timeline.StepDate.prototype.snap = function(date) {
         if (date.getDate() > 15) {
             date.setDate(1);
             date.setMonth(date.getMonth() + 1);
-            // important: first set Date to 1, after that change the month.      
+            // important: first set Date to 1, after that change the month.
         }
         else {
             date.setDate(1);
@@ -6007,7 +6011,7 @@ links.Timeline.StepDate.prototype.addZeros = function(value, len) {
  */
 links.imageloader = (function () {
     var urls = {};  // the loaded urls
-    var callbacks = {}; // the urls currently being loaded. Each key contains 
+    var callbacks = {}; // the urls currently being loaded. Each key contains
     // an array with callbacks
 
     /**
@@ -6359,7 +6363,7 @@ links.Timeline.getPageX = function (event) {
 links.Timeline.addClassName = function(elem, className) {
     var classes = elem.className.split(' ');
     var classesToAdd = className.split(' ');
-    
+
     var added = false;
     for (var i=0; i<classesToAdd.length; i++) {
         if (classes.indexOf(classesToAdd[i]) == -1) {
@@ -6367,7 +6371,7 @@ links.Timeline.addClassName = function(elem, className) {
             added = true;
         }
     }
-    
+
     if (added) {
         elem.className = classes.join(' ');
     }
@@ -6381,7 +6385,7 @@ links.Timeline.addClassName = function(elem, className) {
 links.Timeline.removeClassName = function(elem, className) {
     var classes = elem.className.split(' ');
     var classesToRemove = className.split(' ');
-    
+
     var removed = false;
     for (var i=0; i<classesToRemove.length; i++) {
         var index = classes.indexOf(classesToRemove[i]);
@@ -6390,7 +6394,7 @@ links.Timeline.removeClassName = function(elem, className) {
             removed = true;
         }
     }
-    
+
     if (removed) {
         elem.className = classes.join(' ');
     }
