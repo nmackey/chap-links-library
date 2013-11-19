@@ -208,6 +208,9 @@ links.Timeline = function(container) {
         'cluster': false,
         'style': 'box',
         'customStackOrder': false, //a function(a,b) for determining stackorder amongst a group of items. Essentially a comparator, -ve value for "a before b" and vice versa
+        'moveFactor': 0.2,
+        'animateMove': false,
+        'todayButton': false,
 
         // i18n: Timeline only has built-in English text per default. Include timeline-locales.js to support more localized text.
         'locale': 'en',
@@ -215,9 +218,11 @@ links.Timeline = function(container) {
         'MONTHS_SHORT': new Array("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"),
         'DAYS': new Array("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"),
         'DAYS_SHORT': new Array("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"),
+        'DAYS_MIN': new Array("S", "M", "T", "W", "T", "F", "S"),
         'ZOOM_IN': "Zoom in",
         'ZOOM_OUT': "Zoom out",
         'MOVE_LEFT': "Move left",
+        'MOVE_TODAY': "Move to Today",
         'MOVE_RIGHT': "Move right",
         'NEW': "New",
         'CREATE_NEW_EVENT': "Create new event"
@@ -2286,12 +2291,49 @@ links.Timeline.prototype.repaintNavigation = function () {
                 var onMoveLeft = function(event) {
                     links.Timeline.preventDefault(event);
                     links.Timeline.stopPropagation(event);
-                    timeline.move(-0.2);
-                    timeline.trigger("rangechange");
-                    timeline.trigger("rangechanged");
+                    if (options.animateMove) {
+                        timeline.animateMove(-options.moveFactor);
+                        // events get fired by animateMove
+                    } else {
+                        timeline.move(-options.moveFactor);
+                        timeline.trigger("rangechange");
+                        timeline.trigger("rangechanged");
+                    }
                 };
                 links.Timeline.addEventListener(navBar.moveLeftButton, "mousedown", onMoveLeft);
                 navBar.appendChild(navBar.moveLeftButton);
+
+                if (options.todayButton) {
+                    // create a move left button
+                    navBar.todayButton = document.createElement("DIV");
+                    navBar.todayButton.className = "timeline-navigation-move-today";
+                    navBar.todayButton.title = this.options.MOVE_TODAY;
+                    var mlIconSpan = document.createElement("SPAN");
+                    mlIconSpan.innerHTML = "TODAY";
+                    navBar.todayButton.appendChild(mlIconSpan);
+
+                    var onMoveToday = function(event) {
+                        links.Timeline.preventDefault(event);
+                        links.Timeline.stopPropagation(event);
+                        var now = new Date();
+                        var start = new Date(now.valueOf() - 7 * 24 * 60 * 60 * 1000);
+                        if (options.animateMove) {
+                            timeline.animateTo(start);
+                            // events get fired by animateMove
+                        } else {
+                            // zoom start Date and end Date relative to the zoomAroundDate
+                            var diff = (timeline.end.valueOf() - timeline.start.valueOf());
+                            var end = new Date(start.valueOf() + diff);
+                            this.applyRange(start, end);
+
+                            this.render(); // TODO: optimize, no need to reflow, only to recalc conversion and repaint
+                            timeline.trigger("rangechange");
+                            timeline.trigger("rangechanged");
+                        }
+                    };
+                    links.Timeline.addEventListener(navBar.todayButton, "mousedown", onMoveToday);
+                    navBar.appendChild(navBar.todayButton);
+                }
 
                 // create a move right button
                 navBar.moveRightButton = document.createElement("DIV");
@@ -2304,9 +2346,14 @@ links.Timeline.prototype.repaintNavigation = function () {
                 var onMoveRight = function(event) {
                     links.Timeline.preventDefault(event);
                     links.Timeline.stopPropagation(event);
-                    timeline.move(0.2);
-                    timeline.trigger("rangechange");
-                    timeline.trigger("rangechanged");
+                    if (options.animateMove) {
+                        timeline.animateMove(options.moveFactor);
+                        // events get fired by animateMove
+                    } else {
+                        timeline.move(options.moveFactor);
+                        timeline.trigger("rangechange");
+                        timeline.trigger("rangechanged");
+                    }
                 };
                 links.Timeline.addEventListener(navBar.moveRightButton, "mousedown", onMoveRight);
                 navBar.appendChild(navBar.moveRightButton);
@@ -2675,9 +2722,6 @@ links.Timeline.prototype.onMouseDown = function(event) {
         params.itemLeft = item.start ? this.timeToScreen(item.start) : undefined;
         params.itemRight = item.end ? this.timeToScreen(item.end) : undefined;
     }
-    else {
-        this.dom.frame.style.cursor = 'move';
-    }
     if (!params.touchDown) {
         // add event listeners to handle moving the contents
         // we store the function onmousemove and onmouseup in the timeline, so we can
@@ -2866,8 +2910,6 @@ links.Timeline.prototype.onMouseUp = function (event) {
         options = this.options;
 
     event = event || window.event;
-
-    this.dom.frame.style.cursor = 'auto';
 
     // remove event listeners here, important for Safari
     if (params.onMouseMove) {
@@ -3104,9 +3146,10 @@ links.Timeline.prototype.onMouseWheel = function(event) {
             timeline.trigger("rangechanged");
         };
 
+        var options = this.options;
         var scroll = function () {
             // Scroll the timeline
-            timeline.move(delta * -0.2);
+            timeline.move(delta * -options.moveFactor);
             timeline.trigger("rangechange");
             timeline.trigger("rangechanged");
         };
@@ -3196,6 +3239,66 @@ links.Timeline.prototype.move = function(moveFactor) {
     this.applyRange(newStart, newEnd);
 
     this.render(); // TODO: optimize, no need to reflow, only to recalc conversion and repaint
+};
+
+/*
+ * Same as move but calls animateTo.
+ */
+links.Timeline.prototype.animateMove = function(moveFactor) {
+    // zoom start Date and end Date relative to the zoomAroundDate
+    var diff = (this.end.valueOf() - this.start.valueOf());
+
+    // apply new dates
+    var newStart = new Date(this.start.valueOf() + diff * moveFactor);
+    this.animateTo(newStart);
+};
+
+/*
+ * Moves the timeline to a given date using a sliding animation.
+ * adopted from timeline animation example:
+ * http://almende.github.io/chap-links-library/js/timeline/examples/example21_animate_visible_range.html
+ */
+links.Timeline.prototype.animateTo = function(date) {
+    // get the new final date
+    var animateFinal = date.valueOf();
+    this.setCustomTime(date);
+
+    // cancel any running animation
+    this.animateCancel();
+    var that = this;
+
+    // animate towards the final date
+    var animate = function () {
+        var range = that.getVisibleChartRange();
+        var current = range.start.getTime();
+        var width = (range.end.getTime() - range.start.getTime());
+        var minDiff = Math.max(width / 1000, 1);
+        var diff = (animateFinal - current);
+        if (Math.abs(diff) > minDiff) {
+            // move towards the final date
+            var start = new Date(range.start.getTime() + diff / 4);
+            var end = new Date(range.end.getTime() + diff / 4);
+            that.setVisibleChartRange(start, end);
+
+            // start next timer
+            that.animateTimeout = setTimeout(animate, 25);
+            that.trigger("rangechange");
+        } else {
+            that.trigger("rangechange");
+            that.trigger("rangechanged");
+        }
+    };
+    animate();
+};
+
+/*
+ * Cancels any current animations.
+ */
+links.Timeline.prototype.animateCancel = function() {
+    if (this.animateTimeout) {
+        clearTimeout(this.animateTimeout);
+        this.animateTimeout = undefined;
+    }
 };
 
 /**
@@ -4551,17 +4654,17 @@ links.Timeline.prototype.getGroup = function (groupName) {
         groups.push(groupObj);
         // sort the groups
         if (this.options.groupsOrder == true) {
-	        groups = groups.sort(function (a, b) {
-	            if (a.content > b.content) {
-	                return 1;
-	            }
-	            if (a.content < b.content) {
-	                return -1;
-	            }
-	            return 0;
-	        });
+            groups = groups.sort(function (a, b) {
+                if (a.content > b.content) {
+                    return 1;
+                }
+                if (a.content < b.content) {
+                    return -1;
+                }
+                return 0;
+            });
         } else if (typeof(this.options.groupsOrder) == "function") {
-        	groups = groups.sort(this.options.groupsOrder)
+            groups = groups.sort(this.options.groupsOrder)
         }
 
         // rebuilt the groupIndexes
@@ -4718,8 +4821,6 @@ links.Timeline.prototype.unselectItem = function() {
         var item = this.items[this.selection.index];
 
         if (item && item.dom) {
-            var domItem = item.dom;
-            domItem.style.cursor = '';
             item.unselect();
         }
 
@@ -5933,7 +6034,7 @@ links.Timeline.StepDate.prototype.getLabelMinor = function(options, date) {
             return this.addZeros(date.getHours(), 2) + ":" + this.addZeros(date.getMinutes(), 2);
         case links.Timeline.StepDate.SCALE.HOUR:
             return this.addZeros(date.getHours(), 2) + ":" + this.addZeros(date.getMinutes(), 2);
-        case links.Timeline.StepDate.SCALE.WEEKDAY:      return options.DAYS_SHORT[date.getDay()] + ' ' + date.getDate();
+        case links.Timeline.StepDate.SCALE.WEEKDAY:      return options.DAYS_MIN[date.getDay()] + ' ' + date.getDate();
         case links.Timeline.StepDate.SCALE.DAY:          return String(date.getDate());
         case links.Timeline.StepDate.SCALE.MONTH:        return options.MONTHS_SHORT[date.getMonth()];   // month is zero based
         case links.Timeline.StepDate.SCALE.YEAR:         return String(date.getFullYear());

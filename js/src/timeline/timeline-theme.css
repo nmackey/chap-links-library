@@ -120,7 +120,8 @@ div.timeline-customtime {
 
 div.timeline-navigation-new, div.timeline-navigation-delete,
 div.timeline-navigation-zoom-in, div.timeline-navigation-zoom-out,
-div.timeline-navigation-move-left, div.timeline-navigation-move-right {
+div.timeline-navigation-move-left, div.timeline-navigation-move-right,
+div.timeline-navigation-move-today {
     cursor: pointer;
     float: left;
     padding: 5px;
