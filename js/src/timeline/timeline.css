@@ -30,6 +30,14 @@ div.timeline-axis-text-minor {
 div.timeline-axis-text-major {
 }
 
+div.timeline-axis-grid-weekend {
+  background-color: #F8F7F7;
+}
+
+div.timeline-axis-grid-holiday {
+  background-color: #EAEABC;
+}
+
 div.timeline-event {
     color: #1A1A1A;
     border-color: #97B0F8;
@@ -155,7 +163,7 @@ div.timeline-navigation-move-today {
   padding: 10px 10px;
   float: left;
   text-decoration: none;
-  border-color: #BEBEBE; // border is used for the separator between new and navigation buttons
+  border-color: #BEBEBE; /* border is used for the separator between new and navigation buttons */
   height: 16px;
 }
 

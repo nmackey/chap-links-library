@@ -211,6 +211,10 @@ links.Timeline = function(container) {
         'moveFactor': 0.2,
         'animateMove': false,
         'todayButton': false,
+        'weekends': false,
+        'holidays': [],
+        'moveSelection': true,
+        'minorLabelsInside': false,
 
         // i18n: Timeline only has built-in English text per default. Include timeline-locales.js to support more localized text.
         'locale': 'en',
@@ -1059,11 +1063,25 @@ links.Timeline.prototype.repaintAxis = function() {
     step.start();
     var xFirstMajorLabel = undefined;
     var max = 0;
+    var dayWidth = Math.round(this.size.contentWidth/(Math.round(Math.abs((end.valueOf() - start.valueOf()) / (1000 * 60 * 60 * 24)))));
+    if (axis.weekendsAndHolidays) {
+        // Cleanup previous
+        for (var num = 0; num < axis.weekendsAndHolidays.length; num++) {
+            var weekendAndHoliday = axis.weekendsAndHolidays[num];
+            axis.frame.removeChild(weekendAndHoliday);
+        }
+    }
+    axis.weekendsAndHolidays = [];
+    var paintWeekendsAndHolidays = (options.weekends || options.holidays.length > 0) && (step.scale === links.Timeline.StepDate.SCALE.WEEKDAY || step.scale === links.Timeline.StepDate.SCALE.DAY);
     while (!step.end() && max < 1000) {
         max++;
         var cur = step.getCurrent(),
             x = this.timeToScreen(cur),
             isMajor = step.isMajor();
+
+        if (paintWeekendsAndHolidays) {
+            this.repaintWeekendsAndHolidays(x, dayWidth, cur);
+        }
 
         if (options.showMinorLabels) {
             this.repaintAxisMinorText(x, step.getLabelMinor(options));
@@ -1309,7 +1327,15 @@ links.Timeline.prototype.repaintAxisMinorText = function (x, text) {
 
     label.childNodes[0].nodeValue = text;
     label.style.left = x + "px";
-    label.style.top  = size.axis.labelMinorTop + "px";
+    if (this.options.minorLabelsInside) {
+        if (this.options.axisOnTop) {
+            label.style.top  = (size.axis.labelMinorTop+24) + "px";
+        } else {
+            label.style.top  = (size.axis.labelMinorTop-19) + "px";
+        }
+    } else {
+        label.style.top  = size.axis.labelMinorTop + "px";
+    }
     //label.title = title;  // TODO: this is a heavy operation
 
     props.minorTextNum++;
@@ -1418,6 +1444,53 @@ links.Timeline.prototype.repaintAxisMajorLine = function (x) {
     line.style.height = size.frameHeight + "px";
 
     props.majorLineNum ++;
+};
+
+links.Timeline.prototype.repaintWeekendsAndHolidays = function(x, x2, date) {
+    if (this.options.weekends) {
+        var day = date.getDay();
+        if (day === 6 || day === 0) {
+            this.repaintAxisDay(x, x2, "timeline-axis-grid-weekend");
+        }
+    }
+    // Holidays can override weekends
+    if (this.options.holidays.length > 0) {
+        var month = date.getMonth() < 9 ? '0' + (date.getMonth()+1) : date.getMonth()+1;
+        var day = date.getDate() < 10 ? '0' + date.getDate() : date.getDate();
+        var dateString = date.getFullYear() + "-" + month + "-" + day;
+        var contains = function(array, dateString) {
+            var i = array.length;
+            while(i--) {
+                if (array[i] === dateString) {
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        if (contains(this.options.holidays, dateString)) {
+            this.repaintAxisDay(x, x2, "timeline-axis-grid-holiday");
+        }
+    }
+};
+
+links.Timeline.prototype.repaintAxisDay = function(x, x2, className) {
+    var sizes = this.size,
+        frame = this.dom.axis.frame,
+        weekendsAndHolidays = this.dom.axis.weekendsAndHolidays,
+        block;
+    // create a vertical block
+    block = document.createElement('DIV');
+    block.className = className;
+    block.style.position = 'absolute';
+    block.style.width = x2 + 'px';
+    // add it to the frame (in the background) and reference array
+    frame.insertBefore(block, frame.firstChild);
+    weekendsAndHolidays.push(block);
+    // position it
+    block.style.top = (this.options.axisOnTop ? sizes.axis.height : 0) + 'px';
+    block.style.height = sizes.contentHeight + 'px';
+    block.style.left = (x - sizes.axis.lineMinorWidth/2) + 'px';
 };
 
 /**
@@ -2293,7 +2366,7 @@ links.Timeline.prototype.repaintNavigation = function () {
                     links.Timeline.stopPropagation(event);
                     if (options.animateMove) {
                         timeline.animateMove(-options.moveFactor);
-                        // events get fired by animateMove
+                        // events get fired by animateTo
                     } else {
                         timeline.move(-options.moveFactor);
                         timeline.trigger("rangechange");
@@ -2316,10 +2389,16 @@ links.Timeline.prototype.repaintNavigation = function () {
                         links.Timeline.preventDefault(event);
                         links.Timeline.stopPropagation(event);
                         var now = new Date();
-                        var start = new Date(now.valueOf() - 7 * 24 * 60 * 60 * 1000);
+                        var multiplier;
+                        if (window.innerWidth >= 768) {
+                            multiplier = 7;
+                        } else {
+                            multiplier = 2;
+                        }
+                        var start = new Date(now.valueOf() - multiplier * 24 * 60 * 60 * 1000);
                         if (options.animateMove) {
                             timeline.animateTo(start);
-                            // events get fired by animateMove
+                            // events get fired by animateTo
                         } else {
                             // zoom start Date and end Date relative to the zoomAroundDate
                             var diff = (timeline.end.valueOf() - timeline.start.valueOf());
@@ -2348,7 +2427,7 @@ links.Timeline.prototype.repaintNavigation = function () {
                     links.Timeline.stopPropagation(event);
                     if (options.animateMove) {
                         timeline.animateMove(options.moveFactor);
-                        // events get fired by animateMove
+                        // events get fired by animateTo
                     } else {
                         timeline.move(options.moveFactor);
                         timeline.trigger("rangechange");
@@ -3263,8 +3342,17 @@ links.Timeline.prototype.animateTo = function(date) {
     var animateFinal = date.valueOf();
     this.setCustomTime(date);
 
-    // cancel any running animation
-    this.animateCancel();
+    // cancel any running animation (don't call animateCancel(we don't want the rangechanged event fired here))
+    if (this.animateTimeout) {
+        clearTimeout(this.animateTimeout);
+        this.animateTimeout = undefined;
+    }
+
+    var length = (this.end.valueOf() - this.start.valueOf());
+    var newEnd = new Date(date.valueOf() + length);
+    // fire rangechanged event before animation
+    this.trigger("rangechanged", {'start':date, 'end':newEnd});
+
     var that = this;
 
     // animate towards the final date
@@ -3283,9 +3371,6 @@ links.Timeline.prototype.animateTo = function(date) {
             // start next timer
             that.animateTimeout = setTimeout(animate, 25);
             that.trigger("rangechange");
-        } else {
-            that.trigger("rangechange");
-            that.trigger("rangechanged");
         }
     };
     animate();
@@ -3298,6 +3383,7 @@ links.Timeline.prototype.animateCancel = function() {
     if (this.animateTimeout) {
         clearTimeout(this.animateTimeout);
         this.animateTimeout = undefined;
+        this.trigger("rangechanged");
     }
 };
 
@@ -4734,20 +4820,22 @@ links.Timeline.prototype.setSelection = function(selection) {
                 var item = this.items[index];
                 this.selectItem(index);
 
-                // move the visible chart range to the selected event.
-                var start = item.start;
-                var end = item.end;
-                var middle; // number
-                if (end != undefined) {
-                    middle = (end.valueOf() + start.valueOf()) / 2;
-                } else {
-                    middle = start.valueOf();
-                }
-                var diff = (this.end.valueOf() - this.start.valueOf()),
-                    newStart = new Date(middle - diff/2),
-                    newEnd = new Date(middle + diff/2);
+                if (this.options.moveSelection) {
+                    // move the visible chart range to the selected event.
+                    var start = item.start;
+                    var end = item.end;
+                    var middle; // number
+                    if (end != undefined) {
+                        middle = (end.valueOf() + start.valueOf()) / 2;
+                    } else {
+                        middle = start.valueOf();
+                    }
+                    var diff = (this.end.valueOf() - this.start.valueOf()),
+                        newStart = new Date(middle - diff/2),
+                        newEnd = new Date(middle + diff/2);
 
-                this.setVisibleChartRange(newStart, newEnd);
+                    this.setVisibleChartRange(newStart, newEnd);
+                }
 
                 return true;
             }
@@ -5131,24 +5219,26 @@ links.Timeline.prototype.collision = function(item1, item2, margin) {
  * fire an event
  * @param {String} event   The name of an event, for example "rangechange" or "edit"
  */
-links.Timeline.prototype.trigger = function (event) {
+links.Timeline.prototype.trigger = function (event, props) {
     // built up properties
-    var properties = null;
-    switch (event) {
-        case 'rangechange':
-        case 'rangechanged':
-            properties = {
-                'start': new Date(this.start.valueOf()),
-                'end': new Date(this.end.valueOf())
-            };
-            break;
+    var properties = props;
+    if (!properties) {
+        switch (event) {
+            case 'rangechange':
+            case 'rangechanged':
+                properties = {
+                    'start': new Date(this.start.valueOf()),
+                    'end': new Date(this.end.valueOf())
+                };
+                break;
 
-        case 'timechange':
-        case 'timechanged':
-            properties = {
-                'time': new Date(this.customTime.valueOf())
-            };
-            break;
+            case 'timechange':
+            case 'timechanged':
+                properties = {
+                    'time': new Date(this.customTime.valueOf())
+                };
+                break;
+        }
     }
 
     // trigger the links event bus
