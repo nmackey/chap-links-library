@@ -136,6 +136,9 @@ links.Timeline = function(container) {
 
     this.listeners = {}; // event listener callbacks
 
+    this.atLeftEnd = false; // for animateTo function
+    this.atRightEnd = false; // for animateTo function
+
     // Initialize sizes.
     // Needed for IE (which gives an error when you try to set an undefined
     // value in a style)
@@ -211,6 +214,7 @@ links.Timeline = function(container) {
         'moveFactor': 0.2,
         'animateMove': false,
         'todayButton': false,
+        'todayOffset': 0,
         'weekends': false,
         'holidays': [],
         'moveSelection': true,
@@ -659,13 +663,40 @@ links.Timeline.prototype.setVisibleChartRange = function(start, end, redraw) {
 
     // limit to the allowed range (don't let this do by applyRange,
     // because that method will try to maintain the interval (end-start)
-    var min = this.options.min ? this.options.min : undefined; // date
-    if (min != undefined && start.valueOf() < min.valueOf()) {
-        start = new Date(min.valueOf()); // date
-    }
-    var max = this.options.max ? this.options.max : undefined; // date
-    if (max != undefined && end.valueOf() > max.valueOf()) {
-        end = new Date(max.valueOf()); // date
+    // allow applyRange to do it when showNavigation is true
+    if (!this.options.showNavigation) {
+        var min = this.options.min ? this.options.min : undefined; // date
+        if (min != undefined && start.valueOf() < min.valueOf()) {
+            start = new Date(min.valueOf()); // date
+        }
+        var max = this.options.max ? this.options.max : undefined; // date
+        if (max != undefined && end.valueOf() > max.valueOf()) {
+            end = new Date(max.valueOf()); // date
+        }
+    } else {
+        //check limits and if we are at the edge then update the cursor
+        var left = document.getElementById("timelineLeftButton");
+        var right = document.getElementById("timelineRightButton");
+        var min = this.options.min ? this.options.min : undefined; // date
+        if (min != undefined && start.valueOf() < min.valueOf()) {
+            if (!this.atLeftEnd) {
+                left.className = left.className + (" cursor-not-allowed");
+                this.atLeftEnd = true;
+            }
+        } else {
+            left.className = left.className.replace( /(?:^|\s)cursor-not-allowed(?!\S)/ , '' );
+            this.atLeftEnd = false;
+        }
+        var max = this.options.max ? this.options.max : undefined; // date
+        if (max != undefined && end.valueOf() > max.valueOf()) {
+            if (!this.atRightEnd) {
+                right.className = right.className + (" cursor-not-allowed");
+                this.atRightEnd = true;
+            }
+        } else {
+            right.className = right.className.replace( /(?:^|\s)cursor-not-allowed(?!\S)/ , '' );
+            this.atRightEnd = false;
+        }
     }
 
     this.applyRange(start, end);
@@ -2355,6 +2386,7 @@ links.Timeline.prototype.repaintNavigation = function () {
             if (options.moveable) {
                 // create a move left button
                 navBar.moveLeftButton = document.createElement("DIV");
+                navBar.moveLeftButton.id = "timelineLeftButton";
                 navBar.moveLeftButton.className = "timeline-navigation-move-left";
                 navBar.moveLeftButton.title = this.options.MOVE_LEFT;
                 var mlIconSpan = document.createElement("SPAN");
@@ -2389,13 +2421,7 @@ links.Timeline.prototype.repaintNavigation = function () {
                         links.Timeline.preventDefault(event);
                         links.Timeline.stopPropagation(event);
                         var now = new Date();
-                        var multiplier;
-                        if (window.innerWidth >= 768) {
-                            multiplier = 7;
-                        } else {
-                            multiplier = 2;
-                        }
-                        var start = new Date(now.valueOf() - multiplier * 24 * 60 * 60 * 1000);
+                        var start = new Date(now.valueOf() - options.todayOffset * 24 * 60 * 60 * 1000);
                         if (options.animateMove) {
                             timeline.animateTo(start);
                             // events get fired by animateTo
@@ -2416,6 +2442,7 @@ links.Timeline.prototype.repaintNavigation = function () {
 
                 // create a move right button
                 navBar.moveRightButton = document.createElement("DIV");
+                navBar.moveRightButton.id = "timelineRightButton";
                 navBar.moveRightButton.className = "timeline-navigation-move-right";
                 navBar.moveRightButton.title = this.options.MOVE_RIGHT;
                 var mrIconSpan = document.createElement("SPAN");
@@ -3369,8 +3396,10 @@ links.Timeline.prototype.animateTo = function(date) {
             that.setVisibleChartRange(start, end);
 
             // start next timer
-            that.animateTimeout = setTimeout(animate, 25);
-            that.trigger("rangechange");
+            if (!that.atEnd || !that.atEnd) {
+                that.animateTimeout = setTimeout(animate, 25);
+                that.trigger("rangechange");
+            }
         }
     };
     animate();
