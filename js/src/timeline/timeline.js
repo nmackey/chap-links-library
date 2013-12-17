@@ -1094,7 +1094,7 @@ links.Timeline.prototype.repaintAxis = function() {
     step.start();
     var xFirstMajorLabel = undefined;
     var max = 0;
-    var dayWidth = Math.round(this.size.contentWidth/(Math.round(Math.abs((end.valueOf() - start.valueOf()) / (1000 * 60 * 60 * 24)))));
+    var dayWidth = this.conversion.factor*(1000*60*60*24);
     if (axis.weekendsAndHolidays) {
         // Cleanup previous
         for (var num = 0; num < axis.weekendsAndHolidays.length; num++) {
