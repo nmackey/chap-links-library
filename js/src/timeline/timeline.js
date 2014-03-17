@@ -216,7 +216,7 @@ links.Timeline = function(container) {
         'todayButton': false,
         'todayOffset': 0,
         'weekends': false,
-        'holidays': [],
+        'dates': [], // {name, date, className} - date should be in the format: YYYY-MM-DD, className will be prefixed with 'timeline-axis-grid-'
         'moveSelection': true,
         'minorLabelsInside': false,
 
@@ -1095,23 +1095,23 @@ links.Timeline.prototype.repaintAxis = function() {
     var xFirstMajorLabel = undefined;
     var max = 0;
     var dayWidth = this.conversion.factor*(1000*60*60*24);
-    if (axis.weekendsAndHolidays) {
+    if (axis.weekendsAndDates) {
         // Cleanup previous
-        for (var num = 0; num < axis.weekendsAndHolidays.length; num++) {
-            var weekendAndHoliday = axis.weekendsAndHolidays[num];
-            axis.frame.removeChild(weekendAndHoliday);
+        for (var num = 0; num < axis.weekendsAndDates.length; num++) {
+            var weekendsAndDate = axis.weekendsAndDates[num];
+            axis.frame.removeChild(weekendsAndDate);
         }
     }
-    axis.weekendsAndHolidays = [];
-    var paintWeekendsAndHolidays = (options.weekends || options.holidays.length > 0) && (step.scale === links.Timeline.StepDate.SCALE.WEEKDAY || step.scale === links.Timeline.StepDate.SCALE.DAY);
+    axis.weekendsAndDates = [];
+    var paintweekendsAndDates = (options.weekends || options.dates.length > 0) && (step.scale === links.Timeline.StepDate.SCALE.WEEKDAY || step.scale === links.Timeline.StepDate.SCALE.DAY);
     while (!step.end() && max < 1000) {
         max++;
         var cur = step.getCurrent(),
             x = this.timeToScreen(cur),
             isMajor = step.isMajor();
 
-        if (paintWeekendsAndHolidays) {
-            this.repaintWeekendsAndHolidays(x, dayWidth, cur);
+        if (paintweekendsAndDates) {
+            this.repaintweekendsAndDates(x, dayWidth, cur);
         }
 
         if (options.showMinorLabels) {
@@ -1477,30 +1477,31 @@ links.Timeline.prototype.repaintAxisMajorLine = function (x) {
     props.majorLineNum ++;
 };
 
-links.Timeline.prototype.repaintWeekendsAndHolidays = function(x, x2, date) {
+links.Timeline.prototype.repaintweekendsAndDates = function(x, x2, date) {
     if (this.options.weekends) {
         var day = date.getDay();
         if (day === 6 || day === 0) {
             this.repaintAxisDay(x, x2, "timeline-axis-grid-weekend");
         }
     }
-    // Holidays can override weekends
-    if (this.options.holidays.length > 0) {
+    // Dates can override weekends
+    if (this.options.dates.length > 0) {
         var month = date.getMonth() < 9 ? '0' + (date.getMonth()+1) : date.getMonth()+1;
         var day = date.getDate() < 10 ? '0' + date.getDate() : date.getDate();
         var dateString = date.getFullYear() + "-" + month + "-" + day;
         var contains = function(array, dateString) {
             var i = array.length;
             while(i--) {
-                if (array[i] === dateString) {
-                    return true;
+                if (array[i].date === dateString) {
+                    return array[i];
                 }
             }
             return false;
         };
 
-        if (contains(this.options.holidays, dateString)) {
-            this.repaintAxisDay(x, x2, "timeline-axis-grid-holiday");
+        var inputDate = contains(this.options.dates, dateString);
+        if (inputDate) {
+            this.repaintAxisDay(x, x2, "timeline-axis-grid-" + inputDate.className);
         }
     }
 };
@@ -1508,7 +1509,7 @@ links.Timeline.prototype.repaintWeekendsAndHolidays = function(x, x2, date) {
 links.Timeline.prototype.repaintAxisDay = function(x, x2, className) {
     var sizes = this.size,
         frame = this.dom.axis.frame,
-        weekendsAndHolidays = this.dom.axis.weekendsAndHolidays,
+        weekendsAndDates = this.dom.axis.weekendsAndDates,
         block;
     // create a vertical block
     block = document.createElement('DIV');
@@ -1517,7 +1518,7 @@ links.Timeline.prototype.repaintAxisDay = function(x, x2, className) {
     block.style.width = x2 + 'px';
     // add it to the frame (in the background) and reference array
     frame.insertBefore(block, frame.firstChild);
-    weekendsAndHolidays.push(block);
+    weekendsAndDates.push(block);
     // position it
     block.style.top = (this.options.axisOnTop ? sizes.axis.height : 0) + 'px';
     block.style.height = sizes.contentHeight + 'px';
