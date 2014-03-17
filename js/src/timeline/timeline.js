@@ -1103,15 +1103,15 @@ links.Timeline.prototype.repaintAxis = function() {
         }
     }
     axis.weekendsAndDates = [];
-    var paintweekendsAndDates = (options.weekends || options.dates.length > 0) && (step.scale === links.Timeline.StepDate.SCALE.WEEKDAY || step.scale === links.Timeline.StepDate.SCALE.DAY);
+    var paintWeekendsAndDates = (options.weekends || options.dates.length > 0) && (step.scale === links.Timeline.StepDate.SCALE.WEEKDAY || step.scale === links.Timeline.StepDate.SCALE.DAY);
     while (!step.end() && max < 1000) {
         max++;
         var cur = step.getCurrent(),
             x = this.timeToScreen(cur),
             isMajor = step.isMajor();
 
-        if (paintweekendsAndDates) {
-            this.repaintweekendsAndDates(x, dayWidth, cur);
+        if (paintWeekendsAndDates) {
+            this.repaintWeekendsAndDates(x, dayWidth, cur);
         }
 
         if (options.showMinorLabels) {
@@ -1477,7 +1477,7 @@ links.Timeline.prototype.repaintAxisMajorLine = function (x) {
     props.majorLineNum ++;
 };
 
-links.Timeline.prototype.repaintweekendsAndDates = function(x, x2, date) {
+links.Timeline.prototype.repaintWeekendsAndDates = function(x, x2, date) {
     if (this.options.weekends) {
         var day = date.getDay();
         if (day === 6 || day === 0) {
