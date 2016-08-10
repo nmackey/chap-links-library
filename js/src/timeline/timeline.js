@@ -1798,6 +1798,11 @@ links.Timeline.prototype.repaintItems = function() {
         item.updatePosition(timeline);
     });
 
+    // make sure item is selected (this ensures that selected items without DOM are not shown as selected if DOM was added)
+    if (this.selection && this.selection.index) {
+        this.selectItem(this.selection.index);
+    }
+
     // redraw the delete button and dragareas of the selected item (if any)
     this.repaintDeleteButton();
     this.repaintDragAreas();
